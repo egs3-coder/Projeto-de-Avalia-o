@@ -1,0 +1,47 @@
+digraph G {
+  rankdir=LR; fontname="Helvetica"; fontsize=12; bgcolor="white"; nodesep=0.35; ranksep=0.7;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, color="#555555"];
+  edge [fontname="Helvetica", fontsize=9, color="#666666"];
+  label="Arquitetura de observabilidade — docker compose (rede interna \"observabilidade_default\")"; labelloc=t;
+
+  prof [label="Professor\n(navegador)", shape=ellipse, fillcolor="#FFF3CD"];
+  cf   [label="cloudflared\n(Cloudflare Tunnel)\nHTTPS público", fillcolor="#FDE2C4"];
+
+  subgraph cluster_apps { label="Aplicações do Projeto Integrador"; style="rounded,dashed"; color="#1F77B4";
+    carga  [label="gerador-carga\n(curl em loop)", fillcolor="#EEEEEE"];
+    ped    [label="app-pedidos\nAPI :8080\nActuator :8081", fillcolor="#D6E9F8"];
+    est    [label="app-estoque\nAPI :8080\nActuator :8081", fillcolor="#D6E9F8"];
+    pg     [label="PostgreSQL :5432\n(bancos pedidos e estoque)", shape=cylinder, fillcolor="#E8F0E0"];
+  }
+  subgraph cluster_exp { label="Exporters de infraestrutura"; style="rounded,dashed"; color="#2CA02C";
+    node_e [label="node-exporter :9100\n(host)", fillcolor="#DFF2DF"];
+    cadv   [label="cAdvisor :8080\n(contêineres)", fillcolor="#DFF2DF"];
+    pge    [label="postgres-exporter :9187", fillcolor="#DFF2DF"];
+  }
+  subgraph cluster_obs { label="Stack de observabilidade"; style="rounded,dashed"; color="#9467BD";
+    prom  [label="Prometheus :9090\n(métricas)", fillcolor="#F3E0F7"];
+    loki  [label="Loki :3100\n(logs)", fillcolor="#F3E0F7"];
+    tempo [label="Tempo :3200 / OTLP :4318\n(traces)", fillcolor="#F3E0F7"];
+    graf  [label="Grafana :3000\n(única porta exposta)", fillcolor="#FFD8B1", penwidth=2];
+  }
+
+  prof -> cf [label="HTTPS"]; cf -> graf;
+  carga -> ped [label="HTTP"]; carga -> est;
+  ped -> est [label="HTTP + traceparent"];
+  ped -> pg [label="JDBC"]; est -> pg [label="JDBC"];
+  pge -> pg [style=dashed];
+
+  prom -> ped  [label="scrape /actuator/prometheus", style=dashed, color="#D62728", fontcolor="#D62728"];
+  prom -> est  [style=dashed, color="#D62728"];
+  prom -> node_e [label="scrape /metrics", style=dashed, color="#D62728", fontcolor="#D62728"];
+  prom -> cadv [style=dashed, color="#D62728"];
+  prom -> pge  [style=dashed, color="#D62728"];
+
+  ped -> loki  [label="logs (loki4j)", color="#1F77B4", fontcolor="#1F77B4"];
+  est -> loki  [color="#1F77B4"];
+  ped -> tempo [label="spans OTLP/HTTP", color="#9467BD", fontcolor="#9467BD"];
+  est -> tempo [color="#9467BD"];
+  tempo -> prom [label="remote write\n(service graph)", style=dotted];
+
+  graf -> prom [label="PromQL"]; graf -> loki [label="LogQL"]; graf -> tempo [label="TraceQL"];
+}

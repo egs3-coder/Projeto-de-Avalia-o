@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: app-estoque
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/estoque}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      pool-name: estoque-pool
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8080
+
+# ---------------------------------------------------------------
+# Observabilidade
+# ---------------------------------------------------------------
+management:
+  # Os endpoints do Actuator ficam numa porta separada (8081), que NÃO é
+  # publicada para a internet: só o Prometheus (rede interna do Docker) a acessa. (R5)
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}   # R1: tag usada nos filtros do Grafana
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true             # habilita p95/p99
+        estoque.reserva.tempo: true
+  tracing:
+    sampling:
+      probability: 1.0                          # 100% das requisições viram trace (ambiente de laboratório)
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Serviço de estoque (reserva e reposição de produtos)
+    version: 1.0.0
+
+# URL do Loki usada pelo logback-spring.xml
+loki:
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+logging:
+  level:
+    root: INFO
+    br.com.projetointegrador: DEBUG

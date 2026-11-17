@@ -1,0 +1,272 @@
+# =====================================================================
+#  Infraestrutura de Comunicação — Observabilidade
+#  Actuator + Prometheus + Grafana + Loki + Tempo + Node Exporter + cAdvisor
+#
+#  Subir tudo:          docker compose up -d --build
+#  Com acesso remoto:   docker compose --profile remoto up -d --build
+#
+#  Segurança (R5): apenas o Grafana (porta 3000) é publicado para fora.
+#  As demais portas ficam presas a 127.0.0.1 (só a própria máquina acessa)
+#  ou nem são publicadas (só a rede interna do Docker acessa).
+# =====================================================================
+
+name: observabilidade
+
+x-app-env: &app-env
+  DB_USER: ${POSTGRES_USER:-postgres}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+  LOKI_URL: http://loki:3100/loki/api/v1/push
+  OTLP_TRACING_ENDPOINT: http://tempo:4318/v1/traces
+  MANAGEMENT_PORT: "8081"
+  TZ: America/Sao_Paulo
+
+services:
+  # ------------------------------------------------------------------
+  # Banco de dados das aplicações
+  # ------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+      POSTGRES_DB: postgres
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # Aplicações web Java do Projeto Integrador
+  # ------------------------------------------------------------------
+  app-estoque:
+    build: ./apps/app-estoque
+    container_name: app-estoque
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://postgres:5432/estoque
+    ports:
+      - "127.0.0.1:8082:8080"   # API (somente localhost)
+      - "127.0.0.1:8083:8081"   # Actuator (somente localhost, para o print do curl)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  app-pedidos:
+    build: ./apps/app-pedidos
+    container_name: app-pedidos
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://postgres:5432/pedidos
+      ESTOQUE_URL: http://app-estoque:8080
+    ports:
+      - "127.0.0.1:8080:8080"   # API (somente localhost)
+      - "127.0.0.1:8081:8081"   # Actuator (somente localhost, para o print do curl)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app-estoque:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  # Gerador de carga contínuo: mantém os gráficos, logs e traces com dados
+  # (inclui erros 5xx, 404 e pedidos rejeitados por falta de estoque).
+  gerador-carga:
+    image: curlimages/curl:8.10.1
+    container_name: gerador-carga
+    entrypoint: ["/bin/sh", "/carga.sh"]
+    environment:
+      PEDIDOS_URL: http://app-pedidos:8080
+      ESTOQUE_URL: http://app-estoque:8080
+      INTERVALO: "1"
+    volumes:
+      - ./loadgen/carga.sh:/carga.sh:ro
+    depends_on:
+      app-pedidos:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # Exporters de infraestrutura (R3)
+  # ------------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    command:
+      - "--path.rootfs=/host"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+
+  # Opcional do R3: exporter do PostgreSQL
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # Coleta e armazenamento (R4 / R6)
+  # ------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-remote-write-receiver"   # recebe as métricas geradas pelo Tempo (service graph)
+      - "--enable-feature=exemplar-storage"    # exemplars: ponto do gráfico -> trace no Tempo
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"   # somente localhost (R5 / regra do acesso remoto)
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.2.0
+    container_name: loki
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.6.0
+    container_name: tempo
+    user: "0:0"   # grava no volume nomeado sem problema de permissão
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------
+  # Visualização (único serviço exposto para acesso remoto)
+  # ------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD no arquivo .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Viewer
+      # Permite ao Viewer usar o Explore (LogQL/TraceQL) sem poder salvar nada
+      GF_USERS_VIEWERS_CAN_EDIT: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/aplicacoes.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      TZ: America/Sao_Paulo
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped
+
+  # Cria (uma vez) o usuário com papel Viewer para o professor (R7).
+  # As credenciais vêm do .env, que NÃO é versionado.
+  grafana-init:
+    image: curlimages/curl:8.10.1
+    container_name: grafana-init
+    entrypoint: ["/bin/sh", "/criar-viewer.sh"]
+    environment:
+      GRAFANA_URL: http://grafana:3000
+      GRAFANA_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GRAFANA_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GRAFANA_VIEWER_USER: ${GRAFANA_VIEWER_USER:-professor}
+      GRAFANA_VIEWER_PASSWORD: ${GRAFANA_VIEWER_PASSWORD:?Defina GRAFANA_VIEWER_PASSWORD no arquivo .env}
+    volumes:
+      - ./grafana/init/criar-viewer.sh:/criar-viewer.sh:ro
+    depends_on:
+      - grafana
+    restart: "no"
+
+  # ------------------------------------------------------------------
+  # Acesso remoto (R7) — Cloudflare Tunnel, sem abrir portas no roteador.
+  #
+  #  a) URL temporária (sem conta):   docker compose --profile remoto up -d
+  #     A URL https://<aleatorio>.trycloudflare.com aparece em:
+  #     docker compose logs cloudflared | grep trycloudflare
+  #
+  #  b) URL fixa (conta Cloudflare + CLOUDFLARE_TUNNEL_TOKEN no .env):
+  #     docker compose --profile remoto-fixo up -d
+  # ------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:2024.10.0
+    container_name: cloudflared
+    profiles: ["remoto"]
+    command: ["tunnel", "--no-autoupdate", "--url", "http://grafana:3000"]
+    depends_on:
+      - grafana
+    restart: unless-stopped
+
+  cloudflared-fixo:
+    image: cloudflare/cloudflared:2024.10.0
+    container_name: cloudflared-fixo
+    profiles: ["remoto-fixo"]
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - grafana
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:

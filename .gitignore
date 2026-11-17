@@ -1,0 +1,15 @@
+# Segredos
+.env
+
+# Build Java
+target/
+*.class
+*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# IDEs / SO
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,65 @@
+# Datasources provisionados automaticamente (R4 / R6).
+# Os "uid" fixos são usados pelos dashboards e pela correlação log <-> trace.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+      # Exemplars: um ponto do gráfico de latência abre o trace correspondente no Tempo
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      # Correlação log -> trace: extrai o traceId da linha de log e cria um link para o Tempo
+      derivedFields:
+        - name: traceId
+          matcherRegex: 'traceId=(\w+)'
+          url: '$${__value.raw}'
+          datasourceUid: tempo
+          urlDisplayLabel: Abrir trace no Tempo
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      # Correlação trace -> logs: botão "Logs for this span" consulta o Loki pelo traceId
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{application=~".+"} |= "$${__trace.traceId}"'
+      # Trace -> métricas
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        queries:
+          - name: Taxa de requisições do serviço
+            query: 'sum(rate(http_server_requests_seconds_count{application="$${__span.tags["service.name"]}"}[1m]))'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: loki
