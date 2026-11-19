@@ -801,8 +801,8 @@
     },
     {
       "id": 17,
-      "type": "table",
-      "title": "Contêineres em execução",
+      "type": "bargauge",
+      "title": "Contêineres em execução (tempo no ar)",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -821,21 +821,34 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (name, image) (container_last_seen{name!=\"\"})",
-          "legendFormat": "__auto",
-          "exemplar": true,
-          "format": "table",
-          "instant": true
+          "expr": "max by (name) (time() - container_start_time_seconds{name!=\"\"})",
+          "legendFormat": "{{name}}",
+          "exemplar": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "dateTimeFromNow"
+          "unit": "s",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
         },
         "overrides": []
       },
       "options": {
-        "showHeader": true
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       }
     },
     {

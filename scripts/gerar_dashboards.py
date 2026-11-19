@@ -239,10 +239,12 @@ def dashboard_infra():
           [('sum by (name) (container_memory_working_set_bytes{name!=""})', "{{name}}")], unidade="bytes")
     p.add("timeseries", "Rede por contêiner (recebido)",
           [('sum by (name) (rate(container_network_receive_bytes_total{name!=""}[1m]))', "{{name}}")], unidade="Bps")
-    p.add("table", "Contêineres em execução",
-          [('max by (name, image) (container_last_seen{name!=""})', "")], unidade="dateTimeFromNow",
-          opcoes={"showHeader": True})
-    p.paineis[-1]["targets"][0].update({"format": "table", "instant": True})
+    p.add("bargauge", "Contêineres em execução (tempo no ar)",
+          [('max by (name) (time() - container_start_time_seconds{name!=""})', "{{name}}")], unidade="s",
+          opcoes={"orientation": "horizontal", "displayMode": "basic", "showUnfilled": True,
+                  "valueMode": "color", "namePlacement": "left",
+                  "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False}},
+          field={"color": {"mode": "fixed", "fixedColor": "green"}})
 
     p.linha("Banco de dados — postgres_exporter")
     p.add("timeseries", "Conexões no PostgreSQL por banco",
