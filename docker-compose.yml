@@ -121,8 +121,10 @@ services:
       - /:/host:ro,rslave
     restart: unless-stopped
 
+  # v0.57+ entende o "containerd snapshotter" do Docker 29+ (Codespaces, Docker Desktop recente).
+  # Versões antigas falham com "failed to identify the read-write layer ID".
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: ghcr.io/google/cadvisor:v0.57.0
     container_name: cadvisor
     privileged: true
     devices:

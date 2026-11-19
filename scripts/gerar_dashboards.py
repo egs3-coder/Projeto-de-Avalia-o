@@ -222,7 +222,7 @@ def dashboard_infra():
            ("node_memory_MemAvailable_bytes", "disponível"),
            ("node_memory_MemTotal_bytes", "total")], w=8, unidade="bytes")
     p.add("timeseries", "Uso de disco (%)",
-          [('100 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} * 100)', "{{mountpoint}}")],
+          [('max by (device) (100 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|nsfs|ramfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|nsfs|ramfs"} * 100))', "{{device}}")],
           w=8, unidade="percent", field={"min": 0, "max": 100})
     p.add("timeseries", "Disco — leitura e escrita",
           [("sum(rate(node_disk_read_bytes_total[5m]))", "leitura"),
