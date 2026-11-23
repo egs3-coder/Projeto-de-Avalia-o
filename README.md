@@ -6,7 +6,7 @@ Professor: Luiz Novaes · Novembro de 2026
 
 | 📄 Relatório (PDF) | 🎬 Vídeo | 🖥️ Slides (PDF) | 🎤 Roteiro de fala (PDF) | 🔗 Aplicação do PI |
 |:---:|:---:|:---:|:---:|:---:|
-| [**Relatório**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Vídeo no YouTube**](https://youtu.be/1w3fMaGJmjc) | [**Slides**](docs/apresentacao/Slides-Apresentacao-HemoTrack.pdf) | [**Roteiro**](docs/apresentacao/Roteiro-de-Fala-HemoTrack.pdf) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) · cópia em [`apps/hemotrack`](apps/hemotrack) |
+| [**Relatório**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Vídeo no YouTube**](https://youtu.be/1w3fMaGJmjc) | [**Slides**](docs/apresentacao/Slides-Apresentacao-HemoTrack.pdf) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) · cópia em [`apps/hemotrack`](apps/hemotrack) |
 | 21 páginas, 24 figuras | 3 min, com legendas | 14 slides no visual do HemoTrack | 10 min, 2 apresentadores | Spring Boot 3.3.5 · Java 17 · H2 |
 
 Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador, com **métricas** (Actuator → Prometheus), **logs** (Loki) e **traces** (Tempo), tudo visualizado no **Grafana** e orquestrado com um único `docker compose up -d`. O código de negócio do HemoTrack **não foi alterado**: toda a instrumentação foi adicionada.
