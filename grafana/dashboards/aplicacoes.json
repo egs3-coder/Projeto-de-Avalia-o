@@ -1,7 +1,7 @@
 {
   "uid": "pi-aplicacoes",
-  "title": "Projeto Integrador — Aplicações (JVM / HTTP / Negócio)",
-  "description": "Métricas do Spring Boot Actuator/Micrometer das aplicações web Java.",
+  "title": "Projeto Integrador — HemoTrack (JVM / HTTP / Negócio)",
+  "description": "Métricas do Spring Boot Actuator/Micrometer do HemoTrack.",
   "tags": [
     "projeto-integrador",
     "aplicacao"
@@ -1002,7 +1002,7 @@
     {
       "id": 21,
       "type": "row",
-      "title": "Métricas de negócio — app-pedidos",
+      "title": "Métricas de negócio — HemoTrack: requisições e alocação (US01 / US04)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -1015,8 +1015,8 @@
     {
       "id": 22,
       "type": "timeseries",
-      "title": "Pedidos criados por minuto (por status)",
-      "description": "Counter pedidos.criados (tag status = aprovado | rejeitado).",
+      "title": "Requisições criadas por minuto (por urgência)",
+      "description": "Counter hemotrack.requisicoes.criadas (tag urgencia = ROTINA | URGENTE | EMERGENCIA).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1034,14 +1034,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (status) (rate(pedidos_criados_total[1m])) * 60",
-          "legendFormat": "{{status}}",
+          "expr": "sum by (urgencia) (rate(hemotrack_requisicoes_criadas_total[5m])) * 60",
+          "legendFormat": "{{urgencia}}",
           "exemplar": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
@@ -1067,8 +1066,8 @@
     {
       "id": 23,
       "type": "timeseries",
-      "title": "Tempo de processamento do pedido",
-      "description": "Timer pedidos.processamento (inclui a chamada ao app-estoque).",
+      "title": "Requisições por status do fluxo",
+      "description": "Gauge hemotrack.requisicoes.por.status (PENDENTE, ALOCADA, EM_TRANSPORTE, ENTREGUE).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1086,7 +1085,58 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(pedidos_processamento_seconds_sum[5m]) / rate(pedidos_processamento_seconds_count[5m])",
+          "expr": "sum by (status) (hemotrack_requisicoes_por_status)",
+          "legendFormat": "{{status}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Tempo de alocação de bolsas (FEFO)",
+      "description": "Timer hemotrack.alocacao.tempo: tempo de RequisicaoService.alocar (reserva FEFO).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 49,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(hemotrack_alocacao_tempo_seconds_sum[5m])) / sum(rate(hemotrack_alocacao_tempo_seconds_count[5m]))",
           "legendFormat": "médio",
           "exemplar": true
         },
@@ -1096,7 +1146,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(pedidos_processamento_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(hemotrack_alocacao_tempo_seconds_bucket[5m])))",
           "legendFormat": "p95",
           "exemplar": true
         }
@@ -1127,116 +1177,17 @@
       }
     },
     {
-      "id": 24,
-      "type": "stat",
-      "title": "Pedidos em processamento agora",
-      "description": "Gauge pedidos.em.processamento.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 16,
-        "y": 49,
-        "w": 4,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(pedidos_em_processamento)",
-          "legendFormat": "__auto"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
-    },
-    {
       "id": 25,
-      "type": "stat",
-      "title": "Unidades vendidas (última hora)",
-      "description": "Counter pedidos.itens.vendidos.",
+      "type": "timeseries",
+      "title": "Resultado das alocações por minuto",
+      "description": "alocada = bolsas reservadas; sem_estoque_ou_invalida = não havia bolsas compatíveis.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {
-        "x": 20,
-        "y": 49,
-        "w": 4,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(pedidos_itens_vendidos_total[1h]))",
-          "legendFormat": "__auto"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
-    },
-    {
-      "id": 26,
-      "type": "row",
-      "title": "Métricas de negócio — app-estoque",
-      "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 57,
-        "w": 24,
-        "h": 1
-      },
-      "panels": []
-    },
-    {
-      "id": 27,
-      "type": "timeseries",
-      "title": "Reservas de estoque por minuto (por resultado)",
-      "description": "Counter estoque.reservas (tag resultado = sucesso | insuficiente).",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 58,
         "w": 8,
         "h": 8
       },
@@ -1247,7 +1198,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (resultado) (rate(estoque_reservas_total[1m])) * 60",
+          "expr": "sum by (resultado) (rate(hemotrack_alocacao_tempo_seconds_count[5m])) * 60",
           "legendFormat": "{{resultado}}",
           "exemplar": true
         }
@@ -1277,17 +1228,113 @@
       }
     },
     {
-      "id": 28,
-      "type": "timeseries",
-      "title": "Unidades disponíveis no estoque",
-      "description": "Gauge estoque.unidades.disponiveis.",
+      "id": 26,
+      "type": "stat",
+      "title": "Requisições recusadas (última hora)",
+      "description": "Counter hemotrack.requisicoes.recusadas: pedidos com dados inválidos.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "x": 8,
-        "y": 58,
+        "y": 57,
+        "w": 4,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(hemotrack_requisicoes_recusadas_total[1h]))",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 27,
+      "type": "stat",
+      "title": "Requisições criadas (última hora)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 57,
+        "w": 4,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(hemotrack_requisicoes_criadas_total[1h]))",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Entradas na plataforma (por resultado)",
+      "description": "Counter hemotrack.logins (tag resultado = sucesso | falha).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 57,
         "w": 8,
         "h": 8
       },
@@ -1298,8 +1345,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(estoque_unidades_disponiveis)",
-          "legendFormat": "unidades",
+          "expr": "sum by (resultado) (increase(hemotrack_logins_total[5m]))",
+          "legendFormat": "{{resultado}}",
           "exemplar": true
         }
       ],
@@ -1329,18 +1376,31 @@
     },
     {
       "id": 29,
-      "type": "stat",
-      "title": "Produtos abaixo do mínimo",
-      "description": "Gauge estoque.produtos.abaixo.minimo.",
+      "type": "row",
+      "title": "Métricas de negócio — HemoTrack: estoque e telemetria (US03 / US06 / US10)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 30,
+      "type": "bargauge",
+      "title": "Estoque disponível por tipo sanguíneo",
+      "description": "Gauge hemotrack.estoque.bolsas.disponiveis: bolsas disponíveis e dentro da validade.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 16,
-        "y": 58,
-        "w": 4,
-        "h": 8
+        "x": 0,
+        "y": 66,
+        "w": 8,
+        "h": 9
       },
       "targets": [
         {
@@ -1349,12 +1409,164 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(estoque_produtos_abaixo_minimo)",
+          "expr": "sum by (tipo_sanguineo) (hemotrack_estoque_bolsas_disponiveis)",
+          "legendFormat": "{{tipo_sanguineo}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-RdYlGr"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Bolsas cadastradas por minuto (por tipo)",
+      "description": "Counter hemotrack.bolsas.cadastradas (entrada de bolsas no estoque).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 66,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (tipo_sanguineo) (rate(hemotrack_bolsas_cadastradas_total[5m])) * 60",
+          "legendFormat": "{{tipo_sanguineo}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Leituras de temperatura por minuto (por faixa)",
+      "description": "Counter hemotrack.telemetria.leituras (faixa = normal | fora da faixa segura).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 66,
+        "w": 5,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (faixa) (rate(hemotrack_telemetria_leituras_total[5m])) * 60",
+          "legendFormat": "{{faixa}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 33,
+      "type": "stat",
+      "title": "Bolsas vencendo em 7 dias",
+      "description": "Gauge hemotrack.estoque.bolsas.vencendo (risco de descarte).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 21,
+        "y": 66,
+        "w": 3,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(hemotrack_estoque_bolsas_vencendo)",
           "legendFormat": "__auto"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1364,11 +1576,11 @@
               },
               {
                 "color": "orange",
-                "value": 1
+                "value": 5
               },
               {
                 "color": "red",
-                "value": 3
+                "value": 15
               }
             ]
           }
@@ -1388,64 +1600,20 @@
       }
     },
     {
-      "id": 30,
-      "type": "stat",
-      "title": "Tempo médio de reserva",
-      "description": "Timer estoque.reserva.tempo.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 20,
-        "y": 58,
-        "w": 4,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(rate(estoque_reserva_tempo_seconds_sum[5m])) / sum(rate(estoque_reserva_tempo_seconds_count[5m]))",
-          "legendFormat": "__auto"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
-    },
-    {
-      "id": 31,
+      "id": 34,
       "type": "row",
       "title": "Logs (Loki)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 66,
+        "y": 75,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 32,
+      "id": 35,
       "type": "logs",
       "title": "Logs das aplicações selecionadas",
       "description": "Clique numa linha e use o link do traceId para abrir o trace no Tempo.",
@@ -1455,7 +1623,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 67,
+        "y": 76,
         "w": 24,
         "h": 12
       },

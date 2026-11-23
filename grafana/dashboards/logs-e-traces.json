@@ -23,7 +23,7 @@
         "name": "application",
         "label": "Aplicação",
         "type": "custom",
-        "query": "app-pedidos,app-estoque",
+        "query": "hemotrack",
         "includeAll": true,
         "multi": true,
         "current": {
@@ -36,7 +36,7 @@
           ]
         },
         "options": [],
-        "allValue": "app-.*"
+        "allValue": "hemotrack"
       }
     ]
   },
@@ -259,7 +259,7 @@
     {
       "id": 7,
       "type": "table",
-      "title": "Traces recentes de criação de pedido (app-pedidos -> app-estoque -> banco)",
+      "title": "Traces recentes de criação de requisição (HTTP -> RequisicaoService -> banco H2)",
       "description": "",
       "datasource": {
         "type": "tempo",
@@ -279,7 +279,7 @@
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{resource.service.name=\"app-pedidos\" && name=\"http post /api/pedidos\"}",
+          "query": "{resource.service.name=\"hemotrack\" && name=\"http post /requisicoes\"}",
           "limit": 20,
           "tableType": "traces"
         }
@@ -313,7 +313,7 @@
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{status=error}",
+          "query": "{resource.service.name=\"hemotrack\" && status=error}",
           "limit": 20,
           "tableType": "traces"
         }

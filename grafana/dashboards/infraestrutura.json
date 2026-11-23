@@ -1,7 +1,7 @@
 {
   "uid": "pi-infraestrutura",
   "title": "Projeto Integrador — Infraestrutura (Host / Contêineres)",
-  "description": "Node Exporter, cAdvisor e postgres_exporter.",
+  "description": "Node Exporter e cAdvisor.",
   "tags": [
     "projeto-integrador",
     "infraestrutura"
@@ -848,121 +848,6 @@
           ],
           "fields": "",
           "values": false
-        }
-      }
-    },
-    {
-      "id": 18,
-      "type": "row",
-      "title": "Banco de dados — postgres_exporter",
-      "collapsed": false,
-      "gridPos": {
-        "x": 0,
-        "y": 39,
-        "w": 24,
-        "h": 1
-      },
-      "panels": []
-    },
-    {
-      "id": 19,
-      "type": "timeseries",
-      "title": "Conexões no PostgreSQL por banco",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 40,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (datname) (pg_stat_database_numbackends{datname=~\"pedidos|estoque\"})",
-          "legendFormat": "{{datname}}",
-          "exemplar": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never",
-            "spanNulls": true
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 20,
-      "type": "timeseries",
-      "title": "Transações por segundo",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 40,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (datname) (rate(pg_stat_database_xact_commit{datname=~\"pedidos|estoque\"}[1m]))",
-          "legendFormat": "commits {{datname}}",
-          "exemplar": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never",
-            "spanNulls": true
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
         }
       }
     }

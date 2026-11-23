@@ -160,31 +160,45 @@ def dashboard_aplicacoes():
     p.add("timeseries", "Tempo médio para obter conexão",
           [(f"rate(hikaricp_connections_acquire_seconds_sum{{{A}}}[5m]) / rate(hikaricp_connections_acquire_seconds_count{{{A}}}[5m])", "{{application}}")], w=12, unidade="s")
 
-    p.linha("Métricas de negócio — app-pedidos")
-    p.add("timeseries", "Pedidos criados por minuto (por status)",
-          [('sum by (status) (rate(pedidos_criados_total[1m])) * 60', "{{status}}")], w=8, unidade="short",
-          descricao="Counter pedidos.criados (tag status = aprovado | rejeitado).")
-    p.add("timeseries", "Tempo de processamento do pedido",
-          [("rate(pedidos_processamento_seconds_sum[5m]) / rate(pedidos_processamento_seconds_count[5m])", "médio"),
-           ("histogram_quantile(0.95, sum by (le) (rate(pedidos_processamento_seconds_bucket[5m])))", "p95")], w=8, unidade="s",
-          descricao="Timer pedidos.processamento (inclui a chamada ao app-estoque).")
-    p.add("stat", "Pedidos em processamento agora", [("sum(pedidos_em_processamento)", "")], w=4, h=8,
-          descricao="Gauge pedidos.em.processamento.")
-    p.add("stat", "Unidades vendidas (última hora)", [("sum(increase(pedidos_itens_vendidos_total[1h]))", "")], w=4, h=8,
-          descricao="Counter pedidos.itens.vendidos.", field={"decimals": 0})
+    p.linha("Métricas de negócio — HemoTrack: requisições e alocação (US01 / US04)")
+    p.add("timeseries", "Requisições criadas por minuto (por urgência)",
+          [('sum by (urgencia) (rate(hemotrack_requisicoes_criadas_total[5m])) * 60', "{{urgencia}}")], w=8,
+          descricao="Counter hemotrack.requisicoes.criadas (tag urgencia = ROTINA | URGENTE | EMERGENCIA).")
+    p.add("timeseries", "Requisições por status do fluxo",
+          [('sum by (status) (hemotrack_requisicoes_por_status)', "{{status}}")], w=8,
+          descricao="Gauge hemotrack.requisicoes.por.status (PENDENTE, ALOCADA, EM_TRANSPORTE, ENTREGUE).")
+    p.add("timeseries", "Tempo de alocação de bolsas (FEFO)",
+          [('sum(rate(hemotrack_alocacao_tempo_seconds_sum[5m])) / sum(rate(hemotrack_alocacao_tempo_seconds_count[5m]))', "médio"),
+           ('histogram_quantile(0.95, sum by (le) (rate(hemotrack_alocacao_tempo_seconds_bucket[5m])))', "p95")], w=8, unidade="s",
+          descricao="Timer hemotrack.alocacao.tempo: tempo de RequisicaoService.alocar (reserva FEFO).")
+    p.add("timeseries", "Resultado das alocações por minuto",
+          [('sum by (resultado) (rate(hemotrack_alocacao_tempo_seconds_count[5m])) * 60', "{{resultado}}")], w=8,
+          descricao="alocada = bolsas reservadas; sem_estoque_ou_invalida = não havia bolsas compatíveis.")
+    p.add("stat", "Requisições recusadas (última hora)", [("sum(increase(hemotrack_requisicoes_recusadas_total[1h]))", "")], w=4, h=8,
+          descricao="Counter hemotrack.requisicoes.recusadas: pedidos com dados inválidos.", field={"decimals": 0, "color": {"mode": "fixed", "fixedColor": "orange"}})
+    p.add("stat", "Requisições criadas (última hora)", [("sum(increase(hemotrack_requisicoes_criadas_total[1h]))", "")], w=4, h=8,
+          field={"decimals": 0, "color": {"mode": "fixed", "fixedColor": "green"}})
+    p.add("timeseries", "Entradas na plataforma (por resultado)",
+          [('sum by (resultado) (increase(hemotrack_logins_total[5m]))', "{{resultado}}")], w=8,
+          descricao="Counter hemotrack.logins (tag resultado = sucesso | falha).")
 
-    p.linha("Métricas de negócio — app-estoque")
-    p.add("timeseries", "Reservas de estoque por minuto (por resultado)",
-          [('sum by (resultado) (rate(estoque_reservas_total[1m])) * 60', "{{resultado}}")], w=8,
-          descricao="Counter estoque.reservas (tag resultado = sucesso | insuficiente).")
-    p.add("timeseries", "Unidades disponíveis no estoque",
-          [("sum(estoque_unidades_disponiveis)", "unidades")], w=8, descricao="Gauge estoque.unidades.disponiveis.")
-    p.add("stat", "Produtos abaixo do mínimo", [("sum(estoque_produtos_abaixo_minimo)", "")], w=4, h=8,
-          descricao="Gauge estoque.produtos.abaixo.minimo.",
-          field={"thresholds": {"mode": "absolute", "steps": [
-              {"color": "green", "value": None}, {"color": "orange", "value": 1}, {"color": "red", "value": 3}]}})
-    p.add("stat", "Tempo médio de reserva", [("sum(rate(estoque_reserva_tempo_seconds_sum[5m])) / sum(rate(estoque_reserva_tempo_seconds_count[5m]))", "")], w=4, h=8,
-          unidade="s", descricao="Timer estoque.reserva.tempo.")
+    p.linha("Métricas de negócio — HemoTrack: estoque e telemetria (US03 / US06 / US10)")
+    p.add("bargauge", "Estoque disponível por tipo sanguíneo",
+          [('sum by (tipo_sanguineo) (hemotrack_estoque_bolsas_disponiveis)', "{{tipo_sanguineo}}")], w=8, h=9,
+          opcoes={"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": True,
+                  "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False}},
+          descricao="Gauge hemotrack.estoque.bolsas.disponiveis: bolsas disponíveis e dentro da validade.",
+          field={"color": {"mode": "continuous-RdYlGr"}, "min": 0})
+    p.add("timeseries", "Bolsas cadastradas por minuto (por tipo)",
+          [('sum by (tipo_sanguineo) (rate(hemotrack_bolsas_cadastradas_total[5m])) * 60', "{{tipo_sanguineo}}")], w=8, h=9,
+          descricao="Counter hemotrack.bolsas.cadastradas (entrada de bolsas no estoque).")
+    p.add("timeseries", "Leituras de temperatura por minuto (por faixa)",
+          [('sum by (faixa) (rate(hemotrack_telemetria_leituras_total[5m])) * 60', "{{faixa}}")], w=5, h=9,
+          descricao="Counter hemotrack.telemetria.leituras (faixa = normal | fora da faixa segura).")
+    p.add("stat", "Bolsas vencendo em 7 dias", [("sum(hemotrack_estoque_bolsas_vencendo)", "")], w=3, h=9,
+          descricao="Gauge hemotrack.estoque.bolsas.vencendo (risco de descarte).",
+          field={"decimals": 0, "thresholds": {"mode": "absolute", "steps": [
+              {"color": "green", "value": None}, {"color": "orange", "value": 5}, {"color": "red", "value": 15}]}})
 
     p.linha("Logs (Loki)")
     p.add("logs", "Logs das aplicações selecionadas",
@@ -192,8 +206,8 @@ def dashboard_aplicacoes():
           opcoes={"showTime": True, "wrapLogMessage": True, "sortOrder": "Descending", "enableLogDetails": True},
           descricao="Clique numa linha e use o link do traceId para abrir o trace no Tempo.")
 
-    return dashboard("pi-aplicacoes", "Projeto Integrador — Aplicações (JVM / HTTP / Negócio)",
-                     "Métricas do Spring Boot Actuator/Micrometer das aplicações web Java.",
+    return dashboard("pi-aplicacoes", "Projeto Integrador — HemoTrack (JVM / HTTP / Negócio)",
+                     "Métricas do Spring Boot Actuator/Micrometer do HemoTrack.",
                      p.paineis, [var_query("application", "Aplicação", "label_values(process_uptime_seconds, application)")],
                      tags=["projeto-integrador", "aplicacao"])
 
@@ -246,14 +260,8 @@ def dashboard_infra():
                   "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False}},
           field={"color": {"mode": "fixed", "fixedColor": "green"}})
 
-    p.linha("Banco de dados — postgres_exporter")
-    p.add("timeseries", "Conexões no PostgreSQL por banco",
-          [('sum by (datname) (pg_stat_database_numbackends{datname=~"pedidos|estoque"})', "{{datname}}")], w=12)
-    p.add("timeseries", "Transações por segundo",
-          [('sum by (datname) (rate(pg_stat_database_xact_commit{datname=~"pedidos|estoque"}[1m]))', "commits {{datname}}")], w=12)
-
     return dashboard("pi-infraestrutura", "Projeto Integrador — Infraestrutura (Host / Contêineres)",
-                     "Node Exporter, cAdvisor e postgres_exporter.", p.paineis,
+                     "Node Exporter e cAdvisor.", p.paineis,
                      tags=["projeto-integrador", "infraestrutura"])
 
 
@@ -264,9 +272,9 @@ def dashboard_logs_traces():
     p = Painel()
     var_app = {
         "name": "application", "label": "Aplicação", "type": "custom",
-        "query": "app-pedidos,app-estoque", "includeAll": True, "multi": True,
+        "query": "hemotrack", "includeAll": True, "multi": True,
         "current": {"selected": True, "text": ["All"], "value": ["$__all"]},
-        "options": [], "allValue": "app-.*",
+        "options": [], "allValue": "hemotrack",
     }
     p.linha("Logs (Loki)")
     p.add("timeseries", "Volume de logs por nível",
@@ -283,10 +291,10 @@ def dashboard_logs_traces():
           opcoes={"showTime": True, "wrapLogMessage": True, "sortOrder": "Descending", "enableLogDetails": True})
 
     p.linha("Traces (Tempo)")
-    p.add("table", "Traces recentes de criação de pedido (app-pedidos -> app-estoque -> banco)",
-          [('{resource.service.name="app-pedidos" && name="http post /api/pedidos"}', "")], w=24, h=10, ds=TEMPO)
+    p.add("table", "Traces recentes de criação de requisição (HTTP -> RequisicaoService -> banco H2)",
+          [('{resource.service.name="hemotrack" && name="http post /requisicoes"}', "")], w=24, h=10, ds=TEMPO)
     p.add("table", "Traces com erro",
-          [("{status=error}", "")], w=24, h=10, ds=TEMPO)
+          [('{resource.service.name="hemotrack" && status=error}', "")], w=24, h=10, ds=TEMPO)
     p.add("nodeGraph", "Mapa de serviços (gerado pelo Tempo)",
           [("", "")], w=24, h=12, ds=TEMPO)
     p.paineis[-1]["targets"][0] = {"refId": "A", "datasource": TEMPO, "queryType": "serviceMap"}
