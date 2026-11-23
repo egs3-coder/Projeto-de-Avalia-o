@@ -1,34 +1,39 @@
-# Observabilidade do HemoTrack com Actuator, Prometheus, Grafana, Loki e Tempo
+# 🩸 Observabilidade do HemoTrack
+### Actuator · Prometheus · Grafana · Loki · Tempo
 
 **CESAR School · Infraestrutura de Comunicação · Projeto de Avaliação**
 Professor: Luiz Novaes · Novembro de 2026
 
-> 🩸 **Aplicação instrumentada:** o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador (Spring Boot 3.3.5 / Java 17), em [`apps/hemotrack`](apps/hemotrack).
-> Repositório original do PI: [github.com/egs3-coder/HemoTrack](https://github.com/egs3-coder/HemoTrack) (pasta `hemotrack/`, Entrega 04).
->
-> ## 📄 [Abrir o relatório completo (PDF)](Relatorio-Observabilidade-HemoTrack.pdf)
-> 21 páginas, com descrição, diagrama, métricas de negócio, 20 prints comentados, segurança, acesso remoto e dificuldades. Os prints estão em [`docs/evidencias/`](docs/evidencias).
->
-> Este README é um **roteiro guiado**: cada requisito do enunciado aponta para o arquivo, o lugar no Grafana e a evidência onde ele pode ser conferido.
+| 📄 Relatório (PDF) | 🎬 Vídeo de apresentação | 🔗 Aplicação do PI |
+|:---:|:---:|:---:|
+| [**Relatorio-Observabilidade-HemoTrack.pdf**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Video-Observabilidade-HemoTrack.mp4**](docs/video/Video-Observabilidade-HemoTrack.mp4) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) (cópia instrumentada em [`apps/hemotrack`](apps/hemotrack)) |
+| 21 páginas, 24 figuras comentadas | 3 min, um print por etapa, com legendas | Spring Boot 3.3.5 · Java 17 · H2 |
+
+Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador, com **métricas** (Actuator → Prometheus), **logs** (Loki) e **traces** (Tempo), tudo visualizado no **Grafana** e orquestrado com um único `docker compose up -d`. O código de negócio do HemoTrack **não foi alterado**: toda a instrumentação foi adicionada.
+
+> **O que o enunciado pede no README e onde está:**
+> pré-requisitos → [seção 2](#2-pré-requisitos) · comando para subir o ambiente → [seção 3](#3-como-subir-o-ambiente) · portas/URLs de cada serviço → [seção 4](#4-portas-e-urls) · lista das métricas de negócio → [seção 5](#5-métricas-de-negócio-ponto-adicional)
 
 ---
 
 ## Sumário
 
 1. [Guia rápido para o professor](#1-guia-rápido-para-o-professor)
-2. [Acesso remoto ao Grafana](#2-acesso-remoto-ao-grafana)
-3. [Mapa da avaliação: onde está cada requisito](#3-mapa-da-avaliação-onde-está-cada-requisito)
-4. [Roteiro de verificação no Grafana (passo a passo)](#4-roteiro-de-verificação-no-grafana-passo-a-passo)
-5. [Arquitetura](#5-arquitetura)
-6. [O que foi instrumentado no HemoTrack](#6-o-que-foi-instrumentado-no-hemotrack)
-7. [Métricas de negócio (ponto adicional)](#7-métricas-de-negócio-ponto-adicional)
-8. [Como executar o ambiente](#8-como-executar-o-ambiente)
-9. [Portas e URLs](#9-portas-e-urls)
-10. [Segurança mínima (R5)](#10-segurança-mínima-r5)
-11. [Evidências (prints)](#11-evidências-prints-de-23112026)
-12. [Dificuldades encontradas](#12-dificuldades-encontradas)
-13. [Estrutura do repositório](#13-estrutura-do-repositório)
-14. [Equipe](#14-equipe)
+2. [Pré-requisitos](#2-pré-requisitos)
+3. [Como subir o ambiente](#3-como-subir-o-ambiente)
+4. [Portas e URLs](#4-portas-e-urls)
+5. [Métricas de negócio (ponto adicional)](#5-métricas-de-negócio-ponto-adicional)
+6. [Acesso remoto ao Grafana](#6-acesso-remoto-ao-grafana)
+7. [Mapa da avaliação: onde está cada requisito](#7-mapa-da-avaliação-onde-está-cada-requisito)
+8. [Roteiro de verificação no Grafana (passo a passo)](#8-roteiro-de-verificação-no-grafana-passo-a-passo)
+9. [Arquitetura](#9-arquitetura)
+10. [O que foi instrumentado no HemoTrack](#10-o-que-foi-instrumentado-no-hemotrack)
+11. [Segurança mínima (R5)](#11-segurança-mínima-r5)
+12. [Evidências (prints de 23/11/2026)](#12-evidências-prints-de-23112026)
+13. [Vídeo de apresentação](#13-vídeo-de-apresentação)
+14. [Dificuldades encontradas](#14-dificuldades-encontradas)
+15. [Estrutura do repositório](#15-estrutura-do-repositório)
+16. [Equipe](#16-equipe)
 
 ---
 
@@ -36,17 +41,109 @@ Professor: Luiz Novaes · Novembro de 2026
 
 | # | O que fazer | Onde |
 |---|---|---|
+| 0 | Assistir ao vídeo (3 min) | [`docs/video/Video-Observabilidade-HemoTrack.mp4`](docs/video/Video-Observabilidade-HemoTrack.mp4) |
 | 1 | Ler o relatório | [`Relatorio-Observabilidade-HemoTrack.pdf`](Relatorio-Observabilidade-HemoTrack.pdf) (cópia em [`docs/relatorio.pdf`](docs/relatorio.pdf)) |
-| 2 | Entrar no Grafana com o usuário **Viewer** | [Seção 2](#2-acesso-remoto-ao-grafana) |
-| 3 | Seguir o roteiro (dashboards, Loki, Tempo, log → trace) | [Seção 4](#4-roteiro-de-verificação-no-grafana-passo-a-passo) |
-| 4 | Conferir o código e a configuração de cada requisito | [Seção 3](#3-mapa-da-avaliação-onde-está-cada-requisito) |
+| 2 | Entrar no Grafana com o usuário **Viewer** | [Seção 6](#6-acesso-remoto-ao-grafana) |
+| 3 | Seguir o roteiro (dashboards, Loki, Tempo, log → trace) | [Seção 8](#8-roteiro-de-verificação-no-grafana-passo-a-passo) |
+| 4 | Conferir o código e a configuração de cada requisito | [Seção 7](#7-mapa-da-avaliação-onde-está-cada-requisito) |
 | 5 | Ver o código de instrumentação do HemoTrack | [`apps/hemotrack/.../observabilidade/`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade) |
 
 O ambiente tem **9 contêineres** e **7 targets** no Prometheus. São **3 dashboards** provisionados, o HemoTrack expõe **9 métricas de negócio**, e os traces seguem o caminho **HTTP → serviço → banco**.
 
 ---
 
-## 2. Acesso remoto ao Grafana
+## 2. Pré-requisitos
+
+Docker 24+ com Docker Compose v2 e cerca de 3 GB de RAM livres. Não é preciso ter Java nem Maven instalados, porque o HemoTrack é compilado dentro do Docker. Funciona em Linux, Docker Desktop (Windows 10 22H2+ / macOS) ou GitHub Codespaces.
+
+| Requisito | Versão |
+|---|---|
+| Docker Engine / Docker Desktop | 24 ou mais novo |
+| Docker Compose | v2 (`docker compose version`) |
+| Git | qualquer versão recente |
+| Memória livre | cerca de 3 GB |
+| Java / Maven | **não precisa**: o build roda dentro do Docker |
+
+---
+
+## 3. Como subir o ambiente
+
+```bash
+git clone https://github.com/egs3-coder/Projeto-de-Avalia-o.git
+cd Projeto-de-Avalia-o
+
+cp .env.example .env              # troque as senhas (o .env NÃO é versionado)
+docker compose up -d --build      # sobe tudo (o primeiro build leva de 5 a 10 min)
+docker compose ps                 # hemotrack "healthy"; grafana-init "Exited (0)"
+
+# acesso remoto (URL https pública só para o Grafana)
+docker compose --profile remoto up -d
+docker compose logs cloudflared | grep trycloudflare
+```
+
+**Comandos de validação:**
+
+```bash
+# R1: endpoint Prometheus com a tag application + métricas de negócio
+curl -s http://localhost:8081/actuator/prometheus | grep -E '^hemotrack_' | grep -v bucket
+curl -s http://localhost:8081/actuator/prometheus | grep -E '^(hikaricp_connections_active|process_uptime_seconds|http_server_requests_seconds_count)' | head
+
+# todos os targets UP
+curl -s http://localhost:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sort | uniq -c
+
+# o próprio HemoTrack (login: operador / hemotrack123)
+# http://localhost:8080
+```
+
+**Usuários do HemoTrack** (criados pelo `DadosIniciais`, senha `hemotrack123`): `hospital`, `operador`, `logistica` e `gestor`.
+
+**Parar:** `docker compose --profile remoto down` (mantém os dados) ou `docker compose --profile remoto down -v` (apaga os volumes).
+
+---
+
+## 4. Portas e URLs
+
+| Serviço | URL local | Exposição | O que verificar |
+|---|---|---|---|
+| **Grafana** | http://localhost:3000 | **pública** (única, via túnel) | Pasta *Projeto Integrador* |
+| Prometheus | http://localhost:9090/targets | só `127.0.0.1` | 7 targets UP |
+| HemoTrack: telas | http://localhost:8080 | só `127.0.0.1` | Login `operador` / `hemotrack123` |
+| HemoTrack: Actuator | http://localhost:8081/actuator/prometheus | só `127.0.0.1` | `hemotrack_*`, `http_server_requests_*`, `hikaricp_*` |
+| Loki | http://localhost:3100/ready | só `127.0.0.1` | `ready` |
+| Tempo | http://localhost:3200/ready (OTLP :4318) | só `127.0.0.1` / rede interna | `ready` |
+| node-exporter / cAdvisor | :9100 / :8080 | só rede interna do Docker | coletados pelo Prometheus |
+
+---
+
+## 5. Métricas de negócio (ponto adicional)
+
+| Métrica no Prometheus | Tipo | O que mede | História |
+|---|---|---|---|
+| `hemotrack_requisicoes_criadas_total{urgencia}` | Counter | Requisições de hemocomponentes criadas (ROTINA / URGENTE / EMERGENCIA) | US01 |
+| `hemotrack_requisicoes_recusadas_total` | Counter | Requisições recusadas pela validação | US01 |
+| `hemotrack_requisicoes_por_status{status}` | Gauge | Requisições em cada etapa (PENDENTE, ALOCADA, EM_TRANSPORTE, ENTREGUE) | US11 |
+| `hemotrack_alocacao_tempo_seconds_*{resultado}` | Timer | Tempo da alocação FEFO e resultado (alocada / sem estoque) | US04 |
+| `hemotrack_estoque_bolsas_disponiveis{tipo_sanguineo}` | Gauge | Bolsas disponíveis e dentro da validade, por tipo ABO/Rh | US03 |
+| `hemotrack_estoque_bolsas_vencendo` | Gauge | Bolsas que vencem nos próximos 7 dias (risco de descarte) | US10 |
+| `hemotrack_bolsas_cadastradas_total{tipo_sanguineo}` | Counter | Entrada de bolsas no estoque | US03 |
+| `hemotrack_telemetria_leituras_total{faixa}` | Counter | Leituras do sensor de temperatura: normal ou fora da faixa segura | US06 |
+| `hemotrack_logins_total{resultado}` | Counter | Entradas na plataforma: sucesso ou falha | US02 |
+
+```java
+// MetricasNegocioAspect.java: conta cada requisição criada, por urgência, sem alterar o RequisicaoService
+@AfterReturning(pointcut = "execution(* br.com.hemotrack.service.RequisicaoService.criar(..))", returning = "requisicao")
+public void requisicaoCriada(Requisicao requisicao) {
+    Counter.builder("hemotrack.requisicoes.criadas")
+            .description("Requisicoes de hemocomponentes criadas, por urgencia")
+            .tag("urgencia", requisicao.getUrgencia().name())
+            .register(registry)
+            .increment();
+}
+```
+
+---
+
+## 6. Acesso remoto ao Grafana
 
 | Item | Valor |
 |---|---|
@@ -61,7 +158,7 @@ O ambiente tem **9 contêineres** e **7 targets** no Prometheus. São **3 dashbo
 
 ---
 
-## 3. Mapa da avaliação: onde está cada requisito
+## 7. Mapa da avaliação: onde está cada requisito
 
 | Etapa | Requisito | Onde conferir no código | Onde ver funcionando |
 |---|---|---|---|
@@ -72,14 +169,14 @@ O ambiente tem **9 contêineres** e **7 targets** no Prometheus. São **3 dashbo
 | **E4** (0,75) | **R4**: dashboards de aplicação e de infraestrutura, com o JSON no repositório | [`grafana/dashboards/`](grafana/dashboards) · [`dashboards.yml`](grafana/provisioning/dashboards/dashboards.yml) | ☰ → Dashboards → Projeto Integrador |
 | **E5** (0,75) | **R6**: logs no Loki, filtráveis por aplicação | [`logback-spring.xml`](apps/hemotrack/src/main/resources/logback-spring.xml) (appender loki4j) · [`loki.yml`](loki/loki.yml) | Explore → Loki → `{application="hemotrack"}` |
 | **E6** (0,75) | **R6**: traces com vários spans e navegação log → trace | dependências OTel no [`pom.xml`](apps/hemotrack/pom.xml) · spans de serviço em [`MetricasNegocioAspect.java`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade/MetricasNegocioAspect.java) · [`tempo.yml`](tempo/tempo.yml) · *derived field* no [`datasource.yml`](grafana/provisioning/datasources/datasource.yml) | Explore → Loki → expandir log → **Abrir trace no Tempo** |
-| **E7** (0,75) | **R7**: acesso remoto com usuário Viewer | serviço `cloudflared` no [`docker-compose.yml`](docker-compose.yml) · [`criar-viewer.sh`](grafana/init/criar-viewer.sh) | [Seção 2](#2-acesso-remoto-ao-grafana) |
+| **E7** (0,75) | **R7**: acesso remoto com usuário Viewer | serviço `cloudflared` no [`docker-compose.yml`](docker-compose.yml) · [`criar-viewer.sh`](grafana/init/criar-viewer.sh) | [Seção 6](#6-acesso-remoto-ao-grafana) |
 | **E8** (0,75) | Repositório, README e PDF | este README · [`docs/relatorio.pdf`](docs/relatorio.pdf) | — |
 | **Adicional** (+1,00) | ≥ 2 métricas de negócio, com painel próprio | [`MetricasNegocioAspect.java`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade/MetricasNegocioAspect.java) · [`MetricasEstoque.java`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade/MetricasEstoque.java) | Dashboard **HemoTrack**, linhas "Métricas de negócio" |
-| — | **R5**: segurança mínima | [`docker-compose.yml`](docker-compose.yml) (portas em `127.0.0.1`) · [`.gitignore`](.gitignore) · [`.env.example`](.env.example) | [Seção 10](#10-segurança-mínima-r5) |
+| — | **R5**: segurança mínima | [`docker-compose.yml`](docker-compose.yml) (portas em `127.0.0.1`) · [`.gitignore`](.gitignore) · [`.env.example`](.env.example) | [Seção 11](#11-segurança-mínima-r5) |
 
 ---
 
-## 4. Roteiro de verificação no Grafana (passo a passo)
+## 8. Roteiro de verificação no Grafana (passo a passo)
 
 ### Passo 1: Dashboard do HemoTrack (E1, E4 e adicional)
 1. Faça login. O dashboard **"Projeto Integrador — HemoTrack (JVM / HTTP / Negócio)"** abre automaticamente.
@@ -149,7 +246,7 @@ Para buscar direto: Explore → **Tempo** → aba **TraceQL** → `{resource.ser
 
 ---
 
-## 5. Arquitetura
+## 9. Arquitetura
 
 ![Arquitetura](docs/arquitetura.png)
 
@@ -160,7 +257,7 @@ Para buscar direto: Explore → **Tempo** → aba **TraceQL** → `{resource.ser
 
 ---
 
-## 6. O que foi instrumentado no HemoTrack
+## 10. O que foi instrumentado no HemoTrack
 
 O **código de negócio do HemoTrack não foi alterado**. Toda a instrumentação foi **adicionada**:
 
@@ -179,86 +276,7 @@ O gerador de carga ([`loadgen/carga.sh`](loadgen/carga.sh)) entra como `operador
 
 ---
 
-## 7. Métricas de negócio (ponto adicional)
-
-| Métrica no Prometheus | Tipo | O que mede | História |
-|---|---|---|---|
-| `hemotrack_requisicoes_criadas_total{urgencia}` | Counter | Requisições de hemocomponentes criadas (ROTINA / URGENTE / EMERGENCIA) | US01 |
-| `hemotrack_requisicoes_recusadas_total` | Counter | Requisições recusadas pela validação | US01 |
-| `hemotrack_requisicoes_por_status{status}` | Gauge | Requisições em cada etapa (PENDENTE, ALOCADA, EM_TRANSPORTE, ENTREGUE) | US11 |
-| `hemotrack_alocacao_tempo_seconds_*{resultado}` | Timer | Tempo da alocação FEFO e resultado (alocada / sem estoque) | US04 |
-| `hemotrack_estoque_bolsas_disponiveis{tipo_sanguineo}` | Gauge | Bolsas disponíveis e dentro da validade, por tipo ABO/Rh | US03 |
-| `hemotrack_estoque_bolsas_vencendo` | Gauge | Bolsas que vencem nos próximos 7 dias (risco de descarte) | US10 |
-| `hemotrack_bolsas_cadastradas_total{tipo_sanguineo}` | Counter | Entrada de bolsas no estoque | US03 |
-| `hemotrack_telemetria_leituras_total{faixa}` | Counter | Leituras do sensor de temperatura: normal ou fora da faixa segura | US06 |
-| `hemotrack_logins_total{resultado}` | Counter | Entradas na plataforma: sucesso ou falha | US02 |
-
-```java
-// MetricasNegocioAspect.java: conta cada requisição criada, por urgência, sem alterar o RequisicaoService
-@AfterReturning(pointcut = "execution(* br.com.hemotrack.service.RequisicaoService.criar(..))", returning = "requisicao")
-public void requisicaoCriada(Requisicao requisicao) {
-    Counter.builder("hemotrack.requisicoes.criadas")
-            .description("Requisicoes de hemocomponentes criadas, por urgencia")
-            .tag("urgencia", requisicao.getUrgencia().name())
-            .register(registry)
-            .increment();
-}
-```
-
----
-
-## 8. Como executar o ambiente
-
-**Pré-requisitos:** Docker 24+ com Docker Compose v2 e cerca de 3 GB de RAM livres. Não é preciso ter Java nem Maven instalados, porque o HemoTrack é compilado dentro do Docker. Funciona em Linux, Docker Desktop (Windows 10 22H2+ / macOS) ou GitHub Codespaces.
-
-```bash
-git clone https://github.com/egs3-coder/Projeto-de-Avalia-o.git
-cd Projeto-de-Avalia-o
-
-cp .env.example .env              # troque as senhas (o .env NÃO é versionado)
-docker compose up -d --build      # sobe tudo (o primeiro build leva de 5 a 10 min)
-docker compose ps                 # hemotrack "healthy"; grafana-init "Exited (0)"
-
-# acesso remoto (URL https pública só para o Grafana)
-docker compose --profile remoto up -d
-docker compose logs cloudflared | grep trycloudflare
-```
-
-**Comandos de validação:**
-
-```bash
-# R1: endpoint Prometheus com a tag application + métricas de negócio
-curl -s http://localhost:8081/actuator/prometheus | grep -E '^hemotrack_' | grep -v bucket
-curl -s http://localhost:8081/actuator/prometheus | grep -E '^(hikaricp_connections_active|process_uptime_seconds|http_server_requests_seconds_count)' | head
-
-# todos os targets UP
-curl -s http://localhost:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sort | uniq -c
-
-# o próprio HemoTrack (login: operador / hemotrack123)
-# http://localhost:8080
-```
-
-**Usuários do HemoTrack** (criados pelo `DadosIniciais`, senha `hemotrack123`): `hospital`, `operador`, `logistica` e `gestor`.
-
-**Parar:** `docker compose --profile remoto down` (mantém os dados) ou `docker compose --profile remoto down -v` (apaga os volumes).
-
----
-
-## 9. Portas e URLs
-
-| Serviço | URL local | Exposição | O que verificar |
-|---|---|---|---|
-| **Grafana** | http://localhost:3000 | **pública** (única, via túnel) | Pasta *Projeto Integrador* |
-| Prometheus | http://localhost:9090/targets | só `127.0.0.1` | 7 targets UP |
-| HemoTrack: telas | http://localhost:8080 | só `127.0.0.1` | Login `operador` / `hemotrack123` |
-| HemoTrack: Actuator | http://localhost:8081/actuator/prometheus | só `127.0.0.1` | `hemotrack_*`, `http_server_requests_*`, `hikaricp_*` |
-| Loki | http://localhost:3100/ready | só `127.0.0.1` | `ready` |
-| Tempo | http://localhost:3200/ready (OTLP :4318) | só `127.0.0.1` / rede interna | `ready` |
-| node-exporter / cAdvisor | :9100 / :8080 | só rede interna do Docker | coletados pelo Prometheus |
-
----
-
-## 10. Segurança mínima (R5)
+## 11. Segurança mínima (R5)
 
 | Exigência | Como foi atendida |
 |---|---|
@@ -270,7 +288,7 @@ curl -s http://localhost:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sor
 
 ---
 
-## 11. Evidências (prints de 23/11/2026)
+## 12. Evidências (prints de 23/11/2026)
 
 | | |
 |---|---|
@@ -284,7 +302,33 @@ Todos os prints estão em [`docs/evidencias/`](docs/evidencias) e comentados no 
 
 ---
 
-## 12. Dificuldades encontradas
+## 13. Vídeo de apresentação
+
+🎬 [**docs/video/Video-Observabilidade-HemoTrack.mp4**](docs/video/Video-Observabilidade-HemoTrack.mp4) (3 min 11 s, 1080p)
+
+O vídeo percorre o trabalho na ordem das etapas, com um print por cena e uma legenda explicando o que aconteceu em cada processo:
+
+| Tempo | Cena | Etapa |
+|---|---|---|
+| 0:00 | Abertura e equipe | — |
+| 0:07 | Arquitetura do ambiente | — |
+| 0:20 | `docker compose ps`: 9 contêineres no ar | E3 |
+| 0:32 | `/actuator/prometheus`: métricas de negócio, estoque e telemetria | E1 + adicional |
+| 0:56 | Métricas padrão: HTTP, JVM e HikariCP | E1 |
+| 1:07 | Prometheus: 7 targets UP | E2/E3 |
+| 1:16 | Consulta PromQL por tela | E3 |
+| 1:28 | Dashboard do HemoTrack e painéis de negócio | E4 + adicional |
+| 2:03 | Dashboard de infraestrutura | E2/E4 |
+| 2:14 | Logs no Loki | E5 |
+| 2:25 | Do log para o trace e o trace com 10 spans | E6 |
+| 2:48 | Dificuldade: o trace que não abria | — |
+| 3:02 | Encerramento | — |
+
+A música de fundo foi composta por código para este vídeo (sem obras de terceiros).
+
+---
+
+## 14. Dificuldades encontradas
 
 | Problema | Solução |
 |---|---|
@@ -301,7 +345,7 @@ Todos os prints estão em [`docs/evidencias/`](docs/evidencias) e comentados no 
 
 ---
 
-## 13. Estrutura do repositório
+## 15. Estrutura do repositório
 
 ```
 ├── apps/
@@ -316,7 +360,7 @@ Todos os prints estão em [`docs/evidencias/`](docs/evidencias) e comentados no 
 │   └── init/criar-viewer.sh  # cria o usuário Viewer do professor
 ├── loadgen/carga.sh          # gerador de carga contínuo (simula um operador do hemocentro)
 ├── scripts/                  # gerador dos dashboards
-├── docs/                     # relatório, diagrama e evidências (prints)
+├── docs/                     # relatório, diagrama, evidências (prints) e vídeo
 ├── docker-compose.yml
 ├── .env.example
 ├── Relatorio-Observabilidade-HemoTrack.pdf   # 📄 relatório
@@ -325,7 +369,7 @@ Todos os prints estão em [`docs/evidencias/`](docs/evidencias) e comentados no 
 
 ---
 
-## 14. Equipe
+## 16. Equipe
 
 | Integrante | Papel |
 |---|---|
