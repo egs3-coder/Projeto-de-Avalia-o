@@ -6,7 +6,8 @@ Professor: Luiz Novaes · Novembro de 2026
 > 🩸 **Aplicação instrumentada:** o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador (Spring Boot 3.3.5 / Java 17), em [`apps/hemotrack`](apps/hemotrack).
 > Repositório original do PI: [github.com/egs3-coder/HemoTrack](https://github.com/egs3-coder/HemoTrack) (pasta `hemotrack/`, Entrega 04).
 >
-> 📄 **Relatório (PDF):** `docs/relatorio.pdf`, com descrição, diagrama, evidências e dificuldades.
+> ## 📄 [Abrir o relatório completo (PDF)](Relatorio-Observabilidade-HemoTrack.pdf)
+> 21 páginas, com descrição, diagrama, métricas de negócio, 20 prints comentados, segurança, acesso remoto e dificuldades. Os prints estão em [`docs/evidencias/`](docs/evidencias).
 >
 > Este README é um **roteiro guiado**: cada requisito do enunciado aponta para o arquivo, o lugar no Grafana e a evidência onde ele pode ser conferido.
 
@@ -24,9 +25,10 @@ Professor: Luiz Novaes · Novembro de 2026
 8. [Como executar o ambiente](#8-como-executar-o-ambiente)
 9. [Portas e URLs](#9-portas-e-urls)
 10. [Segurança mínima (R5)](#10-segurança-mínima-r5)
-11. [Dificuldades encontradas](#11-dificuldades-encontradas)
-12. [Estrutura do repositório](#12-estrutura-do-repositório)
-13. [Equipe](#13-equipe)
+11. [Evidências (prints)](#11-evidências-prints-de-23112026)
+12. [Dificuldades encontradas](#12-dificuldades-encontradas)
+13. [Estrutura do repositório](#13-estrutura-do-repositório)
+14. [Equipe](#14-equipe)
 
 ---
 
@@ -34,7 +36,7 @@ Professor: Luiz Novaes · Novembro de 2026
 
 | # | O que fazer | Onde |
 |---|---|---|
-| 1 | Ler o relatório | `docs/relatorio.pdf` |
+| 1 | Ler o relatório | [`Relatorio-Observabilidade-HemoTrack.pdf`](Relatorio-Observabilidade-HemoTrack.pdf) (cópia em [`docs/relatorio.pdf`](docs/relatorio.pdf)) |
 | 2 | Entrar no Grafana com o usuário **Viewer** | [Seção 2](#2-acesso-remoto-ao-grafana) |
 | 3 | Seguir o roteiro (dashboards, Loki, Tempo, log → trace) | [Seção 4](#4-roteiro-de-verificação-no-grafana-passo-a-passo) |
 | 4 | Conferir o código e a configuração de cada requisito | [Seção 3](#3-mapa-da-avaliação-onde-está-cada-requisito) |
@@ -71,7 +73,7 @@ O ambiente tem **9 contêineres** e **7 targets** no Prometheus. São **3 dashbo
 | **E5** (0,75) | **R6**: logs no Loki, filtráveis por aplicação | [`logback-spring.xml`](apps/hemotrack/src/main/resources/logback-spring.xml) (appender loki4j) · [`loki.yml`](loki/loki.yml) | Explore → Loki → `{application="hemotrack"}` |
 | **E6** (0,75) | **R6**: traces com vários spans e navegação log → trace | dependências OTel no [`pom.xml`](apps/hemotrack/pom.xml) · spans de serviço em [`MetricasNegocioAspect.java`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade/MetricasNegocioAspect.java) · [`tempo.yml`](tempo/tempo.yml) · *derived field* no [`datasource.yml`](grafana/provisioning/datasources/datasource.yml) | Explore → Loki → expandir log → **Abrir trace no Tempo** |
 | **E7** (0,75) | **R7**: acesso remoto com usuário Viewer | serviço `cloudflared` no [`docker-compose.yml`](docker-compose.yml) · [`criar-viewer.sh`](grafana/init/criar-viewer.sh) | [Seção 2](#2-acesso-remoto-ao-grafana) |
-| **E8** (0,75) | Repositório, README e PDF | este README · `docs/relatorio.pdf` | — |
+| **E8** (0,75) | Repositório, README e PDF | este README · [`docs/relatorio.pdf`](docs/relatorio.pdf) | — |
 | **Adicional** (+1,00) | ≥ 2 métricas de negócio, com painel próprio | [`MetricasNegocioAspect.java`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade/MetricasNegocioAspect.java) · [`MetricasEstoque.java`](apps/hemotrack/src/main/java/br/com/hemotrack/observabilidade/MetricasEstoque.java) | Dashboard **HemoTrack**, linhas "Métricas de negócio" |
 | — | **R5**: segurança mínima | [`docker-compose.yml`](docker-compose.yml) (portas em `127.0.0.1`) · [`.gitignore`](.gitignore) · [`.env.example`](.env.example) | [Seção 10](#10-segurança-mínima-r5) |
 
@@ -268,10 +270,25 @@ curl -s http://localhost:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sor
 
 ---
 
-## 11. Dificuldades encontradas
+## 11. Evidências (prints de 23/11/2026)
+
+| | |
+|---|---|
+| ![compose ps](docs/evidencias/01-docker-compose-ps.png) **E3**: 9 contêineres no ar | ![targets](docs/evidencias/04-prometheus-targets.png) **E2/E3**: 7 targets UP |
+| ![negócio](docs/evidencias/02a-actuator-metricas-negocio.png) **E1 + adicional**: métricas de negócio | ![negócio 2](docs/evidencias/02b-actuator-metricas-negocio-estoque.png) **Adicional**: estoque e telemetria |
+| ![dashboard](docs/evidencias/06-dashboard-hemotrack-http.png) **E4**: dashboard HemoTrack | ![negócio painéis](docs/evidencias/07-dashboard-negocio-requisicoes.png) **Adicional**: painéis de negócio |
+| ![infra](docs/evidencias/08b-dashboard-infra-conteineres.png) **E2/E4**: infraestrutura | ![loki](docs/evidencias/09-loki-explore-logql.png) **E5**: LogQL no Explore |
+| ![log trace](docs/evidencias/10-log-para-trace.png) **E6**: log com link para o trace | ![trace](docs/evidencias/11-tempo-trace-10-spans.png) **E6**: trace com 10 spans |
+
+Todos os prints estão em [`docs/evidencias/`](docs/evidencias) e comentados no [relatório](Relatorio-Observabilidade-HemoTrack.pdf).
+
+---
+
+## 12. Dificuldades encontradas
 
 | Problema | Solução |
 |---|---|
+| Contexto de trace "vazando": cada thread reutilizava o mesmo `traceId` (`trace exceeds max size`) | O `open-in-view` do HemoTrack fazia o span de conexão JDBC fechar depois do span do serviço; mantidos só os spans de consulta (`jdbc.includes=QUERY,FETCH`) |
 | Docker Desktop recusou o Windows da equipe (exige Windows 10 22H2+) | Ambiente executado no **GitHub Codespaces** |
 | cAdvisor 0.49 sem dados no Docker 29 (`failed to identify the read-write layer ID`) | Atualizado para `ghcr.io/google/cadvisor:v0.57.0` |
 | Relógio do computador ~3 min adiantado: consultas com `[1m]` vazias | Janelas de `[5m]` nos painéis de negócio; lição sobre sincronismo de relógio (NTP) |
@@ -284,7 +301,7 @@ curl -s http://localhost:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sor
 
 ---
 
-## 12. Estrutura do repositório
+## 13. Estrutura do repositório
 
 ```
 ├── apps/
@@ -299,15 +316,16 @@ curl -s http://localhost:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sor
 │   └── init/criar-viewer.sh  # cria o usuário Viewer do professor
 ├── loadgen/carga.sh          # gerador de carga contínuo (simula um operador do hemocentro)
 ├── scripts/                  # gerador dos dashboards
-├── docs/                     # relatório, diagrama e evidências
+├── docs/                     # relatório, diagrama e evidências (prints)
 ├── docker-compose.yml
 ├── .env.example
+├── Relatorio-Observabilidade-HemoTrack.pdf   # 📄 relatório
 └── README.md
 ```
 
 ---
 
-## 13. Equipe
+## 14. Equipe
 
 | Integrante | Papel |
 |---|---|
