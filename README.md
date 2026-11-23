@@ -120,7 +120,7 @@ O trace de criação de uma requisição mostra o caminho **controller → servi
 hemotrack  http post /requisicoes                     (RequisicaoController#criar)
 └─ RequisicaoService#criar                            (span de serviço)
    ├─ HospitalService#buscar
-   │  └─ connection → query (SELECT hospital)          (JDBC no H2)
+   │  └─ query (SELECT hospital)                       (JDBC no H2)
    ├─ query (SELECT última requisição → próximo REQ-xxxx)
    └─ query (INSERT requisicao)
 ```
