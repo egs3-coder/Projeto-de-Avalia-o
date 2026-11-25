@@ -4,10 +4,10 @@
 **CESAR School · Infraestrutura de Comunicação · Projeto de Avaliação**
 Professor: Luiz Novaes · Novembro de 2026
 
-| 📄 Relatório (PDF) | 🚀 Deploy do código geral | 🎬 Vídeo | 🖥️ Slides (PDF) | 🔗 Aplicação do PI |
-|:---:|:---:|:---:|:---:|:---:|
-| [**Relatório**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Deploy do código geral**](https://youtu.be/kYS4QwTzybc) | [**Vídeo no YouTube**](https://youtu.be/1w3fMaGJmjc) | [**Slides**](docs/apresentacao/Slides-Apresentacao-HemoTrack.pdf) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) · cópia em [`apps/hemotrack`](apps/hemotrack) |
-| 21 páginas, 24 figuras | deploy do zero e implementação funcionando | 3 min, com legendas | 14 slides no visual do HemoTrack | Spring Boot 3.3.5 · Java 17 · H2 |
+| 📄 Relatório (PDF) | 🎬 Video(Deploy) | 🖥️ Slides (PDF) | 🔗 Aplicação do PI |
+|:---:|:---:|:---:|:---:|
+| [**Relatório**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Video(Deploy)**](https://youtu.be/kYS4QwTzybc) | [**Slides**](docs/apresentacao/Slides-Apresentacao-HemoTrack.pdf) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) · cópia em [`apps/hemotrack`](apps/hemotrack) |
+| 21 páginas, 24 figuras | deploy do zero e implementação funcionando | 14 slides no visual do HemoTrack | Spring Boot 3.3.5 · Java 17 · H2 |
 
 Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador, com **métricas** (Actuator → Prometheus), **logs** (Loki) e **traces** (Tempo), tudo visualizado no **Grafana** e orquestrado com um único `docker compose up -d`. O código de negócio do HemoTrack **não foi alterado**: toda a instrumentação foi adicionada.
 
