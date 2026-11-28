@@ -11,7 +11,13 @@ Professor: Luiz Novaes · Novembro de 2026
 
 Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador, com **métricas** (Actuator → Prometheus), **logs** (Loki) e **traces** (Tempo), tudo visualizado no **Grafana** e orquestrado com um único `docker compose up -d`. O código de negócio do HemoTrack **não foi alterado**: toda a instrumentação foi adicionada.
 
-> 🎥 **Vídeos adicionais (opcionais):** além do vídeo principal de **Deploy de Redes**, há vídeos extras caso queira ver mais detalhes: [HemoTrack – Entrega 4](https://www.youtube.com/watch?v=xPw9zpeyeyQ) · [Screencast de Apresentação do Código](https://www.youtube.com/watch?v=rHVz3nn59Ak). Repositório completo do projeto interno: [github.com/egs3-coder/HemoTrack](https://github.com/egs3-coder/HemoTrack). Detalhes na [seção 13](#13-vídeos).
+### ➕ Vídeos adicionais (opcionais)
+O vídeo principal é o **Deploy de Redes** acima. Os demais são **complementares**, caso queira ver outras partes do projeto com mais detalhe:
+
+| 🎬 Vídeo resumo | 🩸 HemoTrack – Entrega 4 | 💻 Screencast do Código | 📂 Projeto interno (GitHub) |
+|:---:|:---:|:---:|:---:|
+| [**Vídeo resumo**](https://youtu.be/1w3fMaGJmjc) | [**HemoTrack – Entrega 4**](https://www.youtube.com/watch?v=xPw9zpeyeyQ) | [**Screencast de Apresentação do Código**](https://www.youtube.com/watch?v=rHVz3nn59Ak) | [**HemoTrack**](https://github.com/egs3-coder/HemoTrack) |
+| resumo da observabilidade (3 min) | apresentação detalhada do projeto | explicação do código do HemoTrack | código-fonte completo e documentação |
 
 > **O que o enunciado pede no README e onde está:**
 > pré-requisitos → [seção 2](#2-pré-requisitos) · comando para subir o ambiente → [seção 3](#3-como-subir-o-ambiente) · portas/URLs de cada serviço → [seção 4](#4-portas-e-urls) · lista das métricas de negócio → [seção 5](#5-métricas-de-negócio-ponto-adicional)
