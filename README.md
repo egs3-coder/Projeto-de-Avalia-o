@@ -4,12 +4,14 @@
 **CESAR School · Infraestrutura de Comunicação · Projeto de Avaliação**
 Professor: Luiz Novaes · Novembro de 2026
 
-| 📄 Relatório (PDF) | 🎬 Video(Deploy) | 🖥️ Slides (PDF) | 🔗 Aplicação do PI |
+| 📄 Relatório (PDF) | 🎬 Deploy de Redes | 🖥️ Slides (PDF) | 🔗 Aplicação do PI |
 |:---:|:---:|:---:|:---:|
-| [**Relatório**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Video(Deploy)**](https://youtu.be/kYS4QwTzybc) | [**Slides**](docs/apresentacao/Slides-Apresentacao-HemoTrack.pdf) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) · cópia em [`apps/hemotrack`](apps/hemotrack) |
-| 21 páginas, 24 figuras | deploy do zero e implementação funcionando | 14 slides no visual do HemoTrack | Spring Boot 3.3.5 · Java 17 · H2 |
+| [**Relatório**](Relatorio-Observabilidade-HemoTrack.pdf) | [**Deploy de Redes**](https://youtu.be/kYS4QwTzybc) | [**Slides**](docs/apresentacao/Slides-Apresentacao-HemoTrack.pdf) | [HemoTrack](https://github.com/egs3-coder/HemoTrack) · cópia em [`apps/hemotrack`](apps/hemotrack) |
+| 21 páginas, 24 figuras | vídeo principal: deploy do zero e implementação funcionando | 14 slides no visual do HemoTrack | Spring Boot 3.3.5 · Java 17 · H2 |
 
 Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocomponentes do nosso Projeto Integrador, com **métricas** (Actuator → Prometheus), **logs** (Loki) e **traces** (Tempo), tudo visualizado no **Grafana** e orquestrado com um único `docker compose up -d`. O código de negócio do HemoTrack **não foi alterado**: toda a instrumentação foi adicionada.
+
+> 🎥 **Vídeos adicionais (opcionais):** além do vídeo principal de **Deploy de Redes**, há vídeos extras caso queira ver mais detalhes: [HemoTrack – Entrega 4](https://www.youtube.com/watch?v=xPw9zpeyeyQ) · [Screencast de Apresentação do Código](https://www.youtube.com/watch?v=rHVz3nn59Ak). Repositório completo do projeto interno: [github.com/egs3-coder/HemoTrack](https://github.com/egs3-coder/HemoTrack). Detalhes na [seção 13](#13-vídeos).
 
 > **O que o enunciado pede no README e onde está:**
 > pré-requisitos → [seção 2](#2-pré-requisitos) · comando para subir o ambiente → [seção 3](#3-como-subir-o-ambiente) · portas/URLs de cada serviço → [seção 4](#4-portas-e-urls) · lista das métricas de negócio → [seção 5](#5-métricas-de-negócio-ponto-adicional)
@@ -30,7 +32,7 @@ Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocom
 10. [O que foi instrumentado no HemoTrack](#10-o-que-foi-instrumentado-no-hemotrack)
 11. [Segurança mínima (R5)](#11-segurança-mínima-r5)
 12. [Evidências (prints de 23/11/2026)](#12-evidências-prints-de-23112026)
-13. [Vídeo de apresentação](#13-vídeo-de-apresentação)
+13. [Vídeos](#13-vídeos)
 14. [Dificuldades encontradas](#14-dificuldades-encontradas)
 15. [Estrutura do repositório](#15-estrutura-do-repositório)
 16. [Equipe](#16-equipe)
@@ -41,8 +43,11 @@ Este repositório instrumenta o **HemoTrack**, sistema web de gestão de hemocom
 
 | # | O que fazer | Onde |
 |---|---|---|
-| 0 | Assistir ao **deploy do código geral** | [youtu.be/kYS4QwTzybc](https://youtu.be/kYS4QwTzybc) |
-| 0b | Assistir ao vídeo resumo (3 min) | [youtu.be/1w3fMaGJmjc](https://youtu.be/1w3fMaGJmjc) |
+| 0 | Assistir ao vídeo principal: **Deploy de Redes** | [youtu.be/kYS4QwTzybc](https://youtu.be/kYS4QwTzybc) |
+| 0b | *(opcional)* Vídeo resumo (3 min) | [youtu.be/1w3fMaGJmjc](https://youtu.be/1w3fMaGJmjc) |
+| 0c | *(opcional)* HemoTrack – Entrega 4, mais detalhes do projeto | [youtube.com/watch?v=xPw9zpeyeyQ](https://www.youtube.com/watch?v=xPw9zpeyeyQ) |
+| 0d | *(opcional)* Screencast de Apresentação do Código | [youtube.com/watch?v=rHVz3nn59Ak](https://www.youtube.com/watch?v=rHVz3nn59Ak) |
+| 0e | *(opcional)* Repositório detalhado do projeto interno (HemoTrack) | [github.com/egs3-coder/HemoTrack](https://github.com/egs3-coder/HemoTrack) |
 | 1 | Ler o relatório | [`Relatorio-Observabilidade-HemoTrack.pdf`](Relatorio-Observabilidade-HemoTrack.pdf) (cópia em [`docs/relatorio.pdf`](docs/relatorio.pdf)) |
 | 2 | Entrar no Grafana com o usuário **Viewer** | [Seção 6](#6-acesso-remoto-ao-grafana) |
 | 3 | Seguir o roteiro (dashboards, Loki, Tempo, log → trace) | [Seção 8](#8-roteiro-de-verificação-no-grafana-passo-a-passo) |
@@ -303,17 +308,29 @@ Todos os prints estão em [`docs/evidencias/`](docs/evidencias) e comentados no 
 
 ---
 
-## 13. Vídeo de apresentação
+## 13. Vídeos
 
-### 🚀 Deploy do código geral
+### 🚀 Deploy de Redes (vídeo principal)
 
 **Assista no YouTube:** [https://youtu.be/kYS4QwTzybc](https://youtu.be/kYS4QwTzybc)
 
 Deploy do ambiente do zero com `docker compose up -d --build`, o código da instrumentação, o HemoTrack em uso e as métricas, logs e traces aparecendo no Prometheus e no Grafana.
 
-[![Deploy do código geral no YouTube](https://img.youtube.com/vi/kYS4QwTzybc/hqdefault.jpg)](https://youtu.be/kYS4QwTzybc)
+[![Deploy de Redes no YouTube](https://img.youtube.com/vi/kYS4QwTzybc/hqdefault.jpg)](https://youtu.be/kYS4QwTzybc)
 
-### 🎬 Vídeo resumo
+### ➕ Vídeos adicionais (opcionais)
+
+Os vídeos abaixo são **complementares**. O vídeo principal da avaliação é o **Deploy de Redes** acima; estes ficam disponíveis caso o professor queira ver outras partes do projeto com mais detalhe (código, funcionalidades e apresentação do HemoTrack).
+
+| Vídeo | Link | Conteúdo |
+|---|---|---|
+| 🎬 Vídeo resumo | [youtu.be/1w3fMaGJmjc](https://youtu.be/1w3fMaGJmjc) | resumo da observabilidade (3 min 11 s) |
+| 🩸 HemoTrack – Entrega 4 | [youtube.com/watch?v=xPw9zpeyeyQ](https://www.youtube.com/watch?v=xPw9zpeyeyQ) | apresentação mais detalhada do projeto HemoTrack |
+| 💻 Screencast de Apresentação do Código | [youtube.com/watch?v=rHVz3nn59Ak](https://www.youtube.com/watch?v=rHVz3nn59Ak) | explicação do código do HemoTrack |
+
+📂 **Repositório detalhado do projeto interno:** [github.com/egs3-coder/HemoTrack](https://github.com/egs3-coder/HemoTrack) (código-fonte completo, documentação e histórico do HemoTrack).
+
+#### 🎬 Vídeo resumo
 
 🎬 **Assista no YouTube:** [https://youtu.be/1w3fMaGJmjc](https://youtu.be/1w3fMaGJmjc) (3 min 11 s)
 
